@@ -26,6 +26,18 @@ class Blockchain:
                     raise IndexError("Block height out of range")
             else:
                 raise IndexError("Block height out of range")
+            
+    def __iter__(self):
+        i = self._start
+        step = 1 if self._step is None else self._step
+        while True:
+            if (self._stop is not None and i >= self._stop) or i < 0:
+                break
+            try:
+                yield self.block(height=i)
+            except RPCException:
+                break
+            i += step
                 
     def __str__(self):
         string = self.__repr__()
@@ -72,20 +84,97 @@ class Blockchain:
 
 class Block:
     
-    def __init__(self, blockchain: Blockchain, hash_: str = None, height: int = None):
+    def __init__(self, blockchain: Blockchain, hash_: str = None, height: int = None, data: dict = None):
         self._blockchain = blockchain
         self._hash = hash_
         self._height = height
-        self._data = None
-        self._load_block_data()
+        self._data = data
+        self._load_data()
         
     def __str__(self):
         return self._data.__str__()
-        
-    def _load_block_data(self):
-        assert self._hash is not None or self._height is not None, "Cannot load data."
-        
-        if self._hash is None:
-            self._hash = self._blockchain.getblockhash(self._height)
+    
+    @property
+    def height(self):
+        return self._height
+    
+    @property
+    def hash(self):
+        return self._hash
+    
+    @property
+    def data(self):
+        return self._data
+    
+    @property
+    def transactions(self):
+        for i, data in enumerate(self._data["tx"]):
+            yield Transaction(self, id_=data["txid"], index=i, data=data)
             
-        self._data = self._blockchain.getblock(self._hash, verbosity=2)
+    @property
+    def transactions_count(self):
+        return len(self._data["tx"])
+    
+    @property
+    def transactions_value(self):
+        value = 0
+        for transaction in self.transactions:
+            value += transaction.value
+        return value
+        
+    def _load_data(self):
+        if self._hash is None:
+            if self._height is not None:
+                self._hash = self._blockchain.getblockhash(self._height)
+            elif self._data is not None:
+                self._hash = self._data["hash"]
+            else:
+                raise AssertionError("Not enough data to create a block")
+                
+        if self._data is None:
+            self._data = self._blockchain.getblock(self._hash, verbosity=2)
+        
+        if self._height is None:
+            self._height = self._data["height"]
+            
+        assert self._height == self._data["height"] and self._hash == self._data["hash"], "Incoherent data"
+        
+
+class Transaction:
+    
+    def __init__(self, block: Block, id_: str, index: int = None, data: dict = None):
+        self._block = block
+        self._id = id_
+        self._index = index
+        self._data = data
+        self._load_data()
+        
+    def __str__(self):
+        return self._data.__str__()
+    
+    @property
+    def value(self):
+        value = 0
+        for vout in self._data["vout"]:
+            value += vout["value"]
+        return value
+        
+    def _load_data(self):
+        if self._id is None:
+            if self._index is not None:
+                self._data = self._block.data["tx"][self._index]
+                self._id = self._data["txid"]
+            else:
+                raise AssertionError("Not enough data to create a transaction")
+            
+        if self._index is None:
+            for i, tx in enumerate(self._block.data["tx"]):
+                if tx["txid"] == self._id:
+                    self._index = i
+                    break
+                
+        if self._data is None:
+            self._data = self._block.data["tx"][self._index]
+            
+        assert self._id == self._data["txid"], "Incoherent data"
+        
