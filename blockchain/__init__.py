@@ -1,11 +1,41 @@
 from misc import bound
-from rpc import RPCHost
+from rpc import RPCHost, RPCException
 
 
 class Blockchain:
     
-    def __init__(self):
-        self._host = None
+    def __init__(self, host=None, start=None, stop=None, step=None):
+        assert (start is None) or (start >= 0), "Negative block heights not allowed"
+        assert (stop is None) or (stop >= 0), "Negative block heights not allowed"
+        
+        self._host = host
+        self._start = 0 if start is None else start
+        self._stop = stop
+        self._step = step
+        
+    def __getitem__(self, value):
+        if isinstance(value, slice):
+            start = 0 if value.start is not None and value.start < 0 else value.start
+            stop = 0 if value.stop is not None and value.stop < 0 else value.stop
+            return self.__class__(host=self._host, start=start, stop=stop, step=value.step)
+        else:
+            if value >= self._start and (self._stop is None or value < self._stop):
+                try:
+                    return self.block(height=value)
+                except RPCException:
+                    raise IndexError("Block height out of range")
+            else:
+                raise IndexError("Block height out of range")
+                
+    def __str__(self):
+        string = self.__repr__()
+        if self._start is not None:
+            string += " from block {}".format(self._start)
+        if self._stop is not None:
+            string += " from block {}".format(self._stop)
+        if self._step is not None:
+            string += " in steps of {}".format(self._step)
+        return string
         
     def block(self, hash_: str = None, height: int = None):
         return Block(self, hash_, height)
@@ -43,7 +73,6 @@ class Blockchain:
 class Block:
     
     def __init__(self, blockchain: Blockchain, hash_: str = None, height: int = None):
-        super().__init__()
         self._blockchain = blockchain
         self._hash = hash_
         self._height = height
