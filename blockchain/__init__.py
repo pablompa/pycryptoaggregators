@@ -31,8 +31,12 @@ class Blockchain:
         i = self._start
         step = 1 if self._step is None else self._step
         while True:
-            if (self._stop is not None and i >= self._stop) or i < 0:
-                break
+            if self._stop is not None:
+                if step > 0 and i >= self._stop or step < 0 and i <= self._stop:
+                    break
+            else:
+                if i < 0:
+                    break
             try:
                 yield self.block(height=i)
             except RPCException:
@@ -94,6 +98,10 @@ class Block:
     def __str__(self):
         return self._data.__str__()
     
+    def transaction(self, index):
+        data = self._data["tx"][index]
+        return Transaction(self, id_=data["txid"], index=index, data=data) 
+    
     @property
     def height(self):
         return self._height
@@ -101,6 +109,14 @@ class Block:
     @property
     def hash(self):
         return self._hash
+    
+    @property
+    def time(self):
+        return self._data["time"]
+    
+    @property
+    def mediantime(self):
+        return self._data["mediantime"]
     
     @property
     def data(self):
@@ -121,6 +137,10 @@ class Block:
         for transaction in self.transactions:
             value += transaction.value
         return value
+    
+    @property
+    def reward(self):
+        return self.transaction(0).value
         
     def _load_data(self):
         if self._hash is None:
