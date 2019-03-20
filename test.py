@@ -33,8 +33,8 @@ def start_uploader():
 
 if __name__ == "__main__":
     aws_option = True
-    if len(sys.args) > 1:
-        if sys.args[1] == "no_aws":
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "no_aws":
             aws_option = False
             
     aggregator_process = multiprocessing.Process(target=start_aggregator)

@@ -33,6 +33,7 @@ class Aggregator:
             bc = self._blockchain[block_height:-1:-1]
             now = datetime.utcnow()
             new_data = self._new_data(now)
+            new_data["supply"] = self._last_daily_supply
             for block in bc:
                 block_time = datetime.utcfromtimestamp(block.mediantime)
                 if block_time + timedelta(days=1) < now:
@@ -49,8 +50,9 @@ class Aggregator:
                     new_data["transactions"] += block.transactions_count
                     new_data["amounts"] += block.transactions_value
                     new_data["reward"] += block.reward
-                    new_data["supply"] = self._last_daily_supply + new_data["reward"]
                     new_data["block_height"] = block.height
+                    if now.day == block_time.day:
+                        new_data["supply"] = self._last_daily_supply + new_data["reward"]
                     
             time.sleep(self._update_rate)
             
