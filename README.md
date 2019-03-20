@@ -11,7 +11,7 @@
 
 ## Usage:
 
-This software is still in test and development phase. It has just been tested with a Dash Core node.
+This software is still in test and development phase. It has only been tested with a Dash Core node.
 
 1. Download [Dash Core](https://www.dash.org/downloads/) node.
 2. Add the following to `dash.conf`:
