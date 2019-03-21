@@ -1,4 +1,4 @@
-# PyCoinsAggregator
+# PyCryptoAggregators
 
 ## Requirements:
 
