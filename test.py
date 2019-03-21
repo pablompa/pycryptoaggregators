@@ -27,7 +27,7 @@ def start_aggregator():
 
 def start_uploader():               
     now = datetime.utcnow()
-    aws.register_file("dash_daily.csv", 24*3600, ref=datetime(now.year, now.month, now.day, minute=10).timestamp())
+    aws.register_file("dash_daily.csv", 24*3600, ref=datetime(now.year, now.month, now.day, hour=1).timestamp())
     aws.register_file("dash_24h.csv", 1200)
 
 
